@@ -1,0 +1,315 @@
+[[sec:khr-free-function-kernels]]
+= sycl_khr_free_function_kernels
+
+This extension introduces _free function kernels_.
+A free function kernel is an ordinary C++ function, defined at namespace scope,
+that is decorated with the [code]#SYCL_KHR_KERNEL# macro so that it becomes
+a device kernel entry point.
+Its kernel arguments are the function's parameters, rather than the captures of a
+lambda or the members of a function object, which gives them a defined order.
+Because it is a named function, the kernel is identified by the function itself,
+so it can be launched by reference to the function rather than only as
+a lambda.
+
+[[sec:khr-free-function-kernels-dependencies]]
+== Dependencies
+
+This extension has no dependencies on other extensions.
+
+[[sec:khr-free-function-kernels-feature-test]]
+== Feature test macro
+
+An implementation supporting this extension must predefine the macro
+[code]#SYCL_KHR_FREE_FUNCTION_KERNELS# to one of the values defined in the table
+below.
+
+[%header,cols="1,5"]
+|===
+|Value
+|Description
+
+|1
+|Initial version of this extension.
+|===
+
+[[sec:khr-free-function-kernels-defining]]
+== Defining a free function kernel
+
+A free function kernel is an ordinary C++ function whose declaration is decorated
+with the [code]#SYCL_KHR_KERNEL# macro.
+
+The macro takes no arguments, though a future extension may define more.
+
+[source,role=synopsis,id=api:khr-free-function-kernels-macro]
+----
+// Decorate a function declaration to define a free function kernel.
+#define SYCL_KHR_KERNEL()
+----
+
+The first declaration of the function in the translation unit must be the
+decorated declaration (see the rules below).
+For example:
+
+[source]
+----
+SYCL_KHR_KERNEL()
+void scale(float factor, float *data) {
+  // ...
+}
+----
+
+A free function kernel must obey all of the following rules.
+A program that violates any of them is ill formed unless stated otherwise.
+
+* The function must be decorated with the macro.
+
+* The function must be declared at namespace scope.
+
+* The function's return type must be [code]#void#.
+
+* The function must not accept a variadic argument list.
+
+* The function must not be declared [code]#SYCL_EXTERNAL#.
+  A free function kernel is a kernel entry point, not a device function that is
+  called from device code, so the cross-translation-unit device linkage that
+  [code]#SYCL_EXTERNAL# provides does not apply to it.
+
+* Each of the function's parameters must have a type that is <<device-copyable>>;
+  an application can query this with the core
+  [code]#sycl::is_device_copyable_v<T># type trait.
+
+* The decoration must appear on the first declaration of the function in the
+  translation unit. A redeclaration of the function must be decorated as well.
+
+* If the function is decorated in one translation unit, every other translation
+  unit that declares the same function must decorate it with the same macro.
+  A program that violates this rule is ill formed, no diagnostic is required.
+
+{note}Some SYCL types that are legal parameters for an ordinary SYCL kernel are
+not legal parameters for a free function kernel, because a free function kernel
+requires each parameter to be device-copyable (see the rule above).
+For example, [code]#accessor#, [code]#local_accessor#, image accessors,
+[code]#stream#, and [code]#reducer# are legal kernel parameters under
+<<sec:kernel.parameter.passing>> but are not device-copyable and so cannot be
+used as free function kernel parameters.{endnote}
+
+A function decorated with the [code]#SYCL_KHR_KERNEL# macro is a kernel entry point.
+Calling the function as an ordinary function, in either host or device code, results in
+undefined behavior.
+
+{note}A free function kernel obtains its work-item position through the queries
+provided by <<sec:khr-work-item-queries,sycl_khr_work_item_queries>>, such as
+[code]#sycl::khr::this_nd_item#. The preconditions of those queries require the
+query's dimensionality to match the dimensionality with which the kernel is
+launched. See that extension for details.{endnote}
+
+The function itself identifies the kernel: the launch APIs described
+below are parameterized on it through a non-type template parameter
+[code]#Func# (for example, [code]#sycl::khr::kernel_function<scale>#).
+
+[[sec:khr-free-function-kernels-launch]]
+== Launching a free function kernel
+
+A free function kernel is launched by passing its address to one of the launch
+functions defined in this section.
+The address is supplied through the [code]#kernel_function# handle, which carries
+it as a template parameter, so the kernel is identified by the _value_
+[code]#sycl::khr::kernel_function<Func># passed as an argument rather than by an
+explicit template argument on the launch function.
+
+.[apidef]#kernel_function#
+[source,role=synopsis,id=api:khr-free-function-kernels-kernel_function]
+----
+namespace sycl::khr {
+
+template<auto *Func>
+struct kernel_function_s {};
+
+template<auto *Func>
+inline constexpr kernel_function_s<Func> kernel_function;
+
+} // namespace sycl::khr
+----
+
+_Remarks:_ [code]#Func# is the address of a function that is decorated as a free
+function kernel (see <<sec:khr-free-function-kernels-defining>>).
+The variable template [code]#kernel_function<Func># is the value passed to
+[code]#launch_task# and [code]#launch_grouped# to identify the kernel to launch.
+
+{note}For a free function kernel that is a template, the address of a particular
+specialization is used, for example
+[code]#kernel_function<scale<int>>#.{endnote}
+
+[[sec:khr-free-function-kernels-launch-launch_task]]
+=== launch_task
+
+'''
+
+.[apidef]#launch_task#
+[source,role=synopsis,id=api:khr-free-function-kernels-launch_task]
+----
+namespace sycl::khr {
+
+template<auto *Func, typename... Args>
+void launch_task(const queue &q, kernel_function_s<Func> k, Args&&... args);
+
+template<auto *Func, typename... Args>
+void launch_task(handler &h, kernel_function_s<Func> k, Args&&... args);
+
+} // namespace sycl::khr
+----
+
+_Constraints:_ Available only if [code]#std::is_invocable_v<decltype(Func), Args...># is
+[code]#true# and [code]#Func# is decorated with the [code]#SYCL_KHR_KERNEL# macro.
+
+_Effects:_ Enqueues the free function kernel [code]#Func# to the queue
+[code]#q# (or to the command group of the handler [code]#h#) as a single task.
+Each value in the [code]#args# pack is passed to the corresponding parameter of
+[code]#Func#.
+
+[[sec:khr-free-function-kernels-launch-launch_grouped]]
+=== launch_grouped
+
+'''
+
+.[apidef]#launch_grouped#
+[source,role=synopsis,id=api:khr-free-function-kernels-launch_grouped]
+----
+namespace sycl::khr {
+
+template<auto *Func, int Dims, typename... Args>
+void launch_grouped(const queue &q, range<Dims> global, range<Dims> local,
+                    kernel_function_s<Func> k, Args&&... args);
+
+template<auto *Func, int Dims, typename... Args>
+void launch_grouped(handler &h, range<Dims> global, range<Dims> local,
+                    kernel_function_s<Func> k, Args&&... args);
+
+} // namespace sycl::khr
+----
+
+_Constraints:_ Available only if [code]#std::is_invocable_v<decltype(Func), Args...># is
+[code]#true# and [code]#Func# is decorated with the [code]#SYCL_KHR_KERNEL# macro.
+
+_Effects:_ Enqueues the free function kernel [code]#Func# to the queue
+[code]#q# (or to the command group of the handler [code]#h#) as an ND-range
+kernel, over the iteration space defined by the global range [code]#global# with
+work-group (local) size [code]#local#.
+Each value in the [code]#args# pack is passed to the corresponding parameter of
+[code]#Func#.
+
+For example:
+
+[source]
+----
+sycl::khr::launch_grouped(q, global, local, sycl::khr::kernel_function<scale>, factor, data);
+----
+
+The [code]#Constraints# above check, at compile time, that arguments can be passed to
+[code]#Func#. They do not check the required work-group size of the kernel, 
+if any; that is checked at launch against the local range.
+
+[[sec:khr-free-function-kernels-example]]
+== Example
+
+The example below defines a free function kernel at namespace scope, decorates it
+with [code]#SYCL_KHR_KERNEL#, and launches it with
+[code]#sycl::khr::launch_grouped#.
+The kernel obtains its work-item position with the
+<<sec:khr-work-item-queries,sycl_khr_work_item_queries>> query
+[code]#sycl::khr::this_nd_item#, rather than receiving an [code]#nd_item#
+parameter.
+
+[source,,linenums]
+----
+#include <cassert>
+#include <sycl/sycl.hpp>
+
+constexpr size_t N = 1024;
+constexpr size_t WGSIZE = 32;
+
+// A free function kernel: an ordinary function, decorated with the macro.
+SYCL_KHR_KERNEL()
+void scale(float factor, float *data) {
+  size_t i = sycl::khr::this_nd_item<1>().get_global_linear_id();
+  data[i] *= factor;
+}
+
+int main() {
+  sycl::queue q;
+
+  float *data = sycl::malloc_shared<float>(N, q);
+  for (size_t i = 0; i < N; ++i)
+    data[i] = static_cast<float>(i);
+
+  // Identify the kernel by the function itself and launch it.
+  sycl::khr::launch_grouped(q, sycl::range<1>{N}, sycl::range<1>{WGSIZE},
+                            sycl::khr::kernel_function<scale>, 2.0f, data);
+  q.wait();
+
+  for (size_t i = 0; i < N; ++i)
+    assert(data[i] == 2.0f * static_cast<float>(i));
+
+  sycl::free(data, q);
+  return 0;
+}
+----
+
+A free function kernel may also be a function template, or one of several
+overloads.
+Because the kernel is identified by the non-type template parameter
+[code]#Func#, the program must name the exact function whose address is taken:
+for a template, pass the address of a specific specialization; for an overload
+set, cast to the desired function type to select the overload.
+
+[source,,linenums]
+----
+#include <sycl/sycl.hpp>
+
+constexpr size_t N = 1024;
+constexpr size_t WGSIZE = 32;
+
+// A templated free function kernel.
+template<typename T>
+SYCL_KHR_KERNEL()
+void iota(T start, T *p) {
+  size_t i = sycl::khr::this_nd_item<1>().get_global_linear_id();
+  p[i] = start + static_cast<T>(i);
+}
+
+// Two overloads of a free function kernel.
+SYCL_KHR_KERNEL()
+void ping(float *p) {
+  size_t i = sycl::khr::this_nd_item<1>().get_global_linear_id();
+  p[i] = 1.0f;
+}
+
+SYCL_KHR_KERNEL()
+void ping(int *p) {
+  size_t i = sycl::khr::this_nd_item<1>().get_global_linear_id();
+  p[i] = 1;
+}
+
+int main() {
+  sycl::queue q;
+
+  float *fptr = sycl::malloc_shared<float>(N, q);
+  int *iptr = sycl::malloc_shared<int>(N, q);
+  sycl::range<1> global{N}, local{WGSIZE};
+
+  // For a templated kernel, pass the address of a specific instantiation.
+  sycl::khr::launch_grouped(q, global, local, sycl::khr::kernel_function<iota<float>>, 3.14f, fptr);
+  sycl::khr::launch_grouped(q, global, local, sycl::khr::kernel_function<iota<int>>, 3, iptr);
+
+  // For an overloaded kernel, cast to the desired function type to select the
+  // overload.
+  sycl::khr::launch_grouped(q, global, local, sycl::khr::kernel_function<(void(*)(float*))ping>, fptr);
+  sycl::khr::launch_grouped(q, global, local, sycl::khr::kernel_function<(void(*)(int*))ping>, iptr);
+
+  q.wait();
+
+  sycl::free(fptr, q);
+  sycl::free(iptr, q);
+  return 0;
+}
+----
