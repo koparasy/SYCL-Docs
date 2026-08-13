@@ -97,15 +97,11 @@ A function decorated with the [code]#SYCL_KHR_KERNEL# macro is a kernel entry po
 Calling the function as an ordinary function, in either host or device code, results in
 undefined behavior.
 
-The way a free function kernel's body obtains its work-item position must be
-consistent with how the kernel is launched (see
-<<sec:khr-free-function-kernels-launch>>).
-A kernel launched as a single task with [code]#launch_task# executes as a single
-work-item, with no iteration space, and must not query an iteration position.
-A kernel launched over an [code]#nd_range# of [code]#Dims# dimensions with
-[code]#launch_grouped# obtains its position for that iteration space, for example
-through [code]#sycl::khr::this_nd_item<Dims>#.
-A program that violates this rule is ill formed, no diagnostic is required.
+{note}A free function kernel obtains its work-item position through the queries
+provided by <<sec:khr-work-item-queries,sycl_khr_work_item_queries>>, such as
+[code]#sycl::khr::this_nd_item#. The preconditions of those queries require the
+query's dimensionality to match the dimensionality with which the kernel is
+launched. See that extension for details.{endnote}
 
 The function itself identifies the kernel: the launch APIs described
 below are parameterized on it through a non-type template parameter
