@@ -122,7 +122,8 @@ struct work_group_size;
 
 _Mandates:_ [code]#sizeof...(Dims)# is 1, 2, or 3.
 
-Equivalent to [code]#+[[sycl::reqd_work_group_size(Dims...)]]+#.
+Equivalent to [code]#+[[sycl::reqd_work_group_size(Dims...)]]+# (see
+<<table.kernel.attributes>>).
 
 '''
 
@@ -148,7 +149,8 @@ struct work_group_size_hint;
 
 _Mandates:_ [code]#sizeof...(Dims)# is 1, 2, or 3.
 
-Equivalent to [code]#+[[sycl::work_group_size_hint(Dims...)]]+#.
+Equivalent to [code]#+[[sycl::work_group_size_hint(Dims...)]]+# (see
+<<table.kernel.attributes>>).
 
 '''
 
@@ -172,7 +174,8 @@ struct sub_group_size;
 } // namespace sycl::khr::property
 ----
 
-Equivalent to [code]#+[[sycl::reqd_sub_group_size(Size)]]+#.
+Equivalent to [code]#+[[sycl::reqd_sub_group_size(Size)]]+# (see
+<<table.kernel.attributes>>).
 
 '''
 
