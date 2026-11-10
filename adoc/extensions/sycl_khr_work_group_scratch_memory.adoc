@@ -31,9 +31,26 @@ header file.
 
 If the implementation also implements the
 <<sec:khr-split-headers,sycl_khr_split_headers>> extension, then the APIs
-defined in this extension are additionally provided by the header
-[code]#<sycl/khr/work_group_scratch_memory.hpp>#, and the feature test macro is
-additionally provided by [code]#<sycl/khr/split_headers/version.hpp>#.
+defined in this extension are additionally provided by the header files listed
+in <<table.khr-work-group-scratch-memory-headers>>.
+
+[[table.khr-work-group-scratch-memory-headers]]
+.Header files that provide the APIs of this extension
+[width="100%",options="header",cols="1,2"]
+|====
+|Header
+|APIs
+
+|[code]#<sycl/khr/split_headers/version.hpp>#
+|The [code]#SYCL_KHR_WORK_GROUP_SCRATCH_MEMORY# feature test macro from
+<<sec:khr-work-group-scratch-memory-feature-test>>.
+
+|[code]#<sycl/khr/work_group_scratch_memory.hpp>#
+|The [api]#khr::property::work_group_scratch_size# property and its key from
+<<sec:khr-work-group-scratch-memory-size-property>>, and the
+[api]#khr::get_work_group_scratch_memory# functions from
+<<sec:khr-work-group-scratch-memory-functions>>.
+|====
 
 [[sec:khr-work-group-scratch-memory-feature-test]]
 == Feature test macro
@@ -86,16 +103,6 @@ other work-items in the work-group (for example, by calling
 to the scratch allocation.
 {endnote}
 
-{note} Every kernel invocation executes in work-groups, so this extension can be
-used with any kind of kernel launch.
-For example, a kernel launched as a single task executes in a single work-group
-comprising only one work-item, so the scratch allocation is used only by that
-work-item.
-When a kernel is launched without an explicit work-group size, the work-items
-cannot determine which other work-items share the same scratch allocation, so
-they cannot safely share data through it.
-{endnote}
-
 [[sec:khr-work-group-scratch-memory-size-property]]
 == Scratch size property
 
@@ -145,22 +152,12 @@ The following traits inherit from [code]#std::true_type#:
 
 The [api]#khr::property::work_group_scratch_size# property may be passed in the
 [code]#props# argument of any function defined by the
-<<sec:khr-launch,sycl_khr_launch>> extension that launches a kernel.
-A [code]#props# argument to a function defined by that extension which does not
-launch a kernel must not contain this property.
+<<sec:khr-launch,sycl_khr_launch>> extension that launches a kernel with an
+explicit work-group size, such as [code]#khr::launch_grouped#.
+A [code]#props# argument to any other function defined by that extension must
+not contain this property.
 Programs that do so are ill formed, and the implementation must issue a
 diagnostic in this case.
-
-Calling [api]#khr::get_work_group_scratch_memory# from a kernel invocation that
-was not launched with the [api]#khr::property::work_group_scratch_size# property
-results in undefined behavior, as stated in the preconditions of that function.
-
-{note} Implementations are encouraged to diagnose a launch that omits this
-property when they can determine that the kernel calls
-[api]#khr::get_work_group_scratch_memory#, for example by throwing a synchronous
-[code]#exception# with the [code]#errc::memory_allocation# error code from the
-kernel launch function.
-{endnote}
 
 The scratch allocation is counted as part of the <<local-memory>> required by
 the kernel invocation, together with the memory allocated by any
@@ -205,7 +202,8 @@ either a fundamental alignment or an extended alignment that the implementation
 supports for <<local-memory>>.
 
 _Preconditions:_ This function is called from within a <<sycl-kernel-function>>
-(or any of the functions it calls) whose kernel invocation was launched with the
+(or any of the functions it calls) whose kernel invocation was launched with an
+explicit work-group size and with the
 [api]#khr::property::work_group_scratch_size# property.
 
 _Returns:_ A pointer to the start of the scratch allocation of the
@@ -222,6 +220,13 @@ address, where [code]#value# is the [code]#value# of the
 [api]#khr::property::work_group_scratch_size# property.
 Accessing memory outside of those bytes through the returned pointer results in
 undefined behavior.
+
+{note} Implementations are encouraged to diagnose a launch that omits the
+[api]#khr::property::work_group_scratch_size# property when they can determine
+that the kernel calls this function, for example by throwing a synchronous
+[code]#exception# with the [code]#errc::memory_allocation# error code from the
+kernel launch function.
+{endnote}
 
 {note} Because the returned pointer points to <<local-memory>>, an application
 can convert it to a [code]#multi_ptr# in the local address space without a
