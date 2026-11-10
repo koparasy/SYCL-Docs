@@ -19,11 +19,30 @@ This extension depends on the following other KHR extensions:
 The APIs defined in this extension are provided by the [code]#<sycl/sycl.hpp>#
 header file.
 
-If the implementation also implements the
-<<sec:khr-split-headers,sycl_khr_split_headers>> extension, then the APIs
-defined in this extension are additionally provided by the header
-[code]#<sycl/khr/kernel_properties.hpp>#, and the feature test macro is
-additionally provided by [code]#<sycl/khr/split_headers/version.hpp>#.
+If the implementation also implements the <<sec:khr-split-headers,
+sycl_khr_split_headers>> extension, then the APIs defined in this extension are
+additionally provided by the header files listed in
+<<table.khr-kernel-properties-headers>>.
+
+[[table.khr-kernel-properties-headers]]
+.Header files that provide the APIs of this extension
+[width="100%",options="header",cols="1,2"]
+|====
+|Header
+|APIs
+
+|[code]#<sycl/khr/split_headers/version.hpp>#
+|The [api]#SYCL_KHR_KERNEL_PROPERTIES# feature test macro from
+<<sec:khr-kernel-properties-feature-test>>.
+
+|[code]#<sycl/khr/kernel_properties.hpp>#
+|The [api]#khr::property::tag::kernel# tag type from
+<<sec:khr-kernel-properties-embedding>>, and the
+[api]#khr::property::work_group_size#,
+[api]#khr::property::work_group_size_hint#, and
+[api]#khr::property::sub_group_size# properties and their keys from
+<<sec:khr-kernel-properties-properties>>.
+|====
 
 [[sec:khr-kernel-properties-feature-test]]
 == Feature test macro
