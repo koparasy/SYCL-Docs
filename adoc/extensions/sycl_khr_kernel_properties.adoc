@@ -11,7 +11,7 @@ a named function object.
 
 This extension depends on the following other KHR extensions:
 
-* <<sec:khr-properties,sycl_khr_properties>>
+* sycl_khr_properties
 
 [[sec:khr-kernel-properties-header-files]]
 == Header files
@@ -78,9 +78,9 @@ struct kernel {};
 } // namespace sycl::khr::property::tag
 ----
 
-Unlike the tag types in <<sec:khr-properties,sycl_khr_properties>>, this tag
-type is a complete type because it is also the parameter type of the
-[code]#get()# member function described below.
+Unlike the tag types in sycl_khr_properties, this tag type is a complete type
+because it is also the parameter type of the [code]#get()# member function
+described below.
 
 '''
 
