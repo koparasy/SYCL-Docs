@@ -54,27 +54,27 @@ properties that can be applied to a kernel.
 ----
 namespace sycl::khr::property::tag {
 
-struct kernel {
-  explicit kernel() = default;
-};
+struct kernel {};
 
 } // namespace sycl::khr::property::tag
 ----
 
+Unlike the tag types in <<sec:khr-properties,sycl_khr_properties>>, this tag
+type is a complete type because it is also the parameter type of the
+[code]#get()# member function described below.
+
 '''
 
-A named function object type [code]#T# has embedded kernel properties if
-[code]#std::declval<const T&>().get(khr::property::tag::kernel{})# is
-well-formed.
-Let [code]#R# be the type of that expression with cv-qualifiers and references
-removed.
-[code]#R# must be a property or properties list for which
-[api]#khr::is_property_for_v<R, khr::property::tag::kernel># or
+A kernel that is defined as a named function object type [code]#T# can embed
+kernel properties by having a const-qualified [code]#get()# member function that
+takes a parameter of type [api]#khr::property::tag::kernel#.
+The return type [code]#R# of this function must be a property or properties list
+for which [api]#khr::is_property_for_v<R, khr::property::tag::kernel># or
 [api]#khr::is_property_list_for_v<R, khr::property::tag::kernel># is
 [code]#true#; otherwise the program is ill formed and the implementation must
 issue a diagnostic.
-The implementation determines the properties from [code]#R# alone and does not
-call [code]#get#.
+The implementation determines the properties from the return type of [code]#get#
+and does not call it.
 
 When [code]#T# is used as the kernel function of a kernel invocation function,
 the embedded properties apply to every function call operator of [code]#T#.
