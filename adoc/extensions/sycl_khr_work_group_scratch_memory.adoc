@@ -95,6 +95,9 @@ The scratch allocation has the following characteristics:
   for the kernel invocation, such as the memory allocated by a
   [code]#local_accessor#.
 
+Accessing memory outside of the scratch allocation through a pointer returned by
+[api]#khr::get_work_group_scratch_memory# results in undefined behavior.
+
 {note} As with any other <<local-memory>>, a work-item must synchronize with
 other work-items in the work-group (for example, by calling
 [code]#group_barrier#) before reading values that those work-items have written
@@ -187,16 +190,10 @@ namespace.
 ----
 namespace sycl::khr {
 
-void* get_work_group_scratch_memory(); // (1)
-
-template <typename T>
-T* get_work_group_scratch_memory(); // (2)
+void* get_work_group_scratch_memory();
 
 } // namespace sycl::khr
 ----
-
-_Mandates (2):_ [code]#T# is a complete object type, and [code]#alignof(T)# is
-less than or equal to [code]#alignof(std::max_align_t)#.
 
 _Preconditions:_ This function is called from within a <<sycl-kernel-function>>
 (or any of the functions it calls) whose kernel invocation was launched with an
@@ -205,16 +202,7 @@ explicit work-group size and with the
 
 _Returns:_ A pointer to the start of the scratch allocation of the
 <<work-group>> to which the calling work-item belongs.
-All calls to (1) and to (2), for any type [code]#T#, by work-items in the same
-work-group during the same kernel invocation return pointers that represent the
-same address.
-
 The returned pointer points to <<local-memory>>.
-The scratch allocation provides [code]#value# bytes starting at the returned
-address, where [code]#value# is the [code]#value# of the
-[api]#khr::property::work_group_scratch_size# property.
-Accessing memory outside of those bytes through the returned pointer results in
-undefined behavior.
 
 {note} Implementations are encouraged to diagnose a launch that omits the
 [api]#khr::property::work_group_scratch_size# property when they can determine
@@ -223,17 +211,40 @@ that the kernel calls this function, for example by throwing a synchronous
 kernel launch function.
 {endnote}
 
+{note} Because the returned pointer points to <<local-memory>>, an application
+can convert it to a [code]#multi_ptr# in the local address space without a
+run-time check, for example by calling
+[code]#khr::static_addrspace_cast<access::address_space::local_space>#.
+{endnote}
+
+'''
+
+.[apititle]#khr::get_work_group_scratch_memory# (typed)
+[source,role=synopsis,id=api:khr-get-work-group-scratch-memory-typed]
+----
+namespace sycl::khr {
+
+template <typename T>
+T* get_work_group_scratch_memory();
+
+} // namespace sycl::khr
+----
+
+_Mandates:_ [code]#T# is a complete object type, and [code]#alignof(T)# is less
+than or equal to [code]#alignof(std::max_align_t)#.
+
+_Preconditions:_ This function is called from within a <<sycl-kernel-function>>
+(or any of the functions it calls) whose kernel invocation was launched with an
+explicit work-group size and with the
+[api]#khr::property::work_group_scratch_size# property.
+
+_Returns:_ [code]#static_cast<T*>(khr::get_work_group_scratch_memory())#.
+
 {note} To store an object whose alignment is greater than
 [code]#alignof(std::max_align_t)#, an application can request additional bytes
 in the [api]#khr::property::work_group_scratch_size# property and compute a
 suitably aligned address within the scratch allocation by rounding the returned
 address up to the required alignment.
-{endnote}
-
-{note} Because the returned pointer points to <<local-memory>>, an application
-can convert it to a [code]#multi_ptr# in the local address space without a
-run-time check, for example by calling
-[code]#khr::static_addrspace_cast<access::address_space::local_space>#.
 {endnote}
 
 '''
