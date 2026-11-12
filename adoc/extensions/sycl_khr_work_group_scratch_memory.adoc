@@ -90,9 +90,7 @@ The scratch allocation has the following characteristics:
   The application is responsible for constructing objects of other types in that
   memory (e.g. by calling placement-new).
 * The address of the scratch allocation is aligned to at least
-  [code]#alignof(std::max_align_t)#, and to at least [code]#alignof(T)# for each
-  type [code]#T# that is used as the template argument of a call to
-  [api]#khr::get_work_group_scratch_memory# during the kernel invocation.
+  [code]#alignof(std::max_align_t)#.
 * The scratch allocation does not overlap any other <<local-memory>> allocated
   for the kernel invocation, such as the memory allocated by a
   [code]#local_accessor#.
@@ -198,8 +196,7 @@ T* get_work_group_scratch_memory(); // (2)
 ----
 
 _Mandates (2):_ [code]#T# is a complete object type, and [code]#alignof(T)# is
-either a fundamental alignment or an extended alignment that the implementation
-supports for <<local-memory>>.
+less than or equal to [code]#alignof(std::max_align_t)#.
 
 _Preconditions:_ This function is called from within a <<sycl-kernel-function>>
 (or any of the functions it calls) whose kernel invocation was launched with an
@@ -208,8 +205,6 @@ explicit work-group size and with the
 
 _Returns:_ A pointer to the start of the scratch allocation of the
 <<work-group>> to which the calling work-item belongs.
-For (2), the returned pointer is suitably aligned for an object of type
-[code]#T#.
 All calls to (1) and to (2), for any type [code]#T#, by work-items in the same
 work-group during the same kernel invocation return pointers that represent the
 same address.
@@ -226,6 +221,13 @@ undefined behavior.
 that the kernel calls this function, for example by throwing a synchronous
 [code]#exception# with the [code]#errc::memory_allocation# error code from the
 kernel launch function.
+{endnote}
+
+{note} To store an object whose alignment is greater than
+[code]#alignof(std::max_align_t)#, an application can request additional bytes
+in the [api]#khr::property::work_group_scratch_size# property and compute a
+suitably aligned address within the scratch allocation by rounding the returned
+address up to the required alignment.
 {endnote}
 
 {note} Because the returned pointer points to <<local-memory>>, an application
