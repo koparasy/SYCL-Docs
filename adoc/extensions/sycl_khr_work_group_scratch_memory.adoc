@@ -108,8 +108,8 @@ to the scratch allocation.
 == Scratch size property
 
 This extension adds the following new style property, which can be used with the
-kernel launch functions defined by the <<sec:khr-launch,sycl_khr_launch>>
-extension.
+grouped kernel launch functions defined by the
+<<sec:khr-launch,sycl_khr_launch>> extension.
 
 '''
 
@@ -140,9 +140,9 @@ The following traits inherit from [code]#std::true_type#:
 * [code]#khr::is_property<khr::property::work_group_scratch_size>#
 * [code]#khr::is_property_key<khr::property::key::work_group_scratch_size>#
 * [code]#khr::is_property_for<khr::property::work_group_scratch_size,
-  khr::command>#
+  khr::property::tag::launch_grouped>#
 * [code]#khr::is_property_key_for<khr::property::key::work_group_scratch_size,
-  khr::command>#
+  khr::property::tag::launch_grouped>#
 
 [code]#khr::property::work_group_scratch_size# is trivially copyable.
 
@@ -151,14 +151,11 @@ The following traits inherit from [code]#std::true_type#:
 [[sec:khr-work-group-scratch-memory-launch]]
 === Launching a kernel with scratch memory
 
-The [api]#khr::property::work_group_scratch_size# property may be passed in the
-[code]#props# argument of any function defined by the
-<<sec:khr-launch,sycl_khr_launch>> extension that launches a kernel with an
-explicit work-group size, such as [code]#khr::launch_grouped#.
-A [code]#props# argument to any other function defined by that extension must
-not contain this property.
-Programs that do so are ill formed, and the implementation must issue a
-diagnostic in this case.
+{note} Because this property is classified only for
+[code]#khr::property::tag::launch_grouped#, the _Constraints_ of the functions
+defined by <<sec:khr-launch,sycl_khr_launch>> allow it only for grouped kernel
+launches, such as [code]#khr::launch_grouped#.
+{endnote}
 
 The scratch allocation is counted as part of the <<local-memory>> required by
 the kernel invocation, together with the memory allocated by any
