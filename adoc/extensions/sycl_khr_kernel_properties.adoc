@@ -166,7 +166,7 @@ struct work_group_size_hint;
 } // namespace sycl::khr::property
 ----
 
-_Mandates:_ [code]#sizeof...(Dims)# is 1, 2, or 3.
+_Mandates:_ [code]#+sizeof...(Dims)+# is 1, 2, or 3.
 
 Equivalent to [code]#+[[sycl::work_group_size_hint(Dims...)]]+# (see
 <<table.kernel.attributes>>).
